@@ -1,0 +1,59 @@
+# .NET build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Logs
+*.log
+
+# Entity Framework Migrations
+Migrations/*Designer.cs
+
+# Publish results
+*.publish.xml
+
+# Npm packages
+node_modules/
+
+# Environment files
+.env
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Others
+*.swp
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Resharper
+*.DotSettings.user
+
+# Test results
+TestResults/
+
+# Coverage
+coverage/
+
+# NuGet
+*.nupkg
+packages/
