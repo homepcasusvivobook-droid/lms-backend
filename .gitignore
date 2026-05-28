@@ -57,3 +57,4 @@ coverage/
 # NuGet
 *.nupkg
 packages/
+/.vs/LMS.slnx/FileContentIndex/merges
