@@ -33,7 +33,8 @@ builder.Services.AddCors(options =>
             policy
                 .WithOrigins(
                     "http://localhost:4200",
-                    "https://localhost:4200"
+                    "https://localhost:4200",
+                    "https://agreeable-stone-0d6de7a00.7.azurestaticapps.net"
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod();
@@ -46,11 +47,11 @@ var app = builder.Build();
 // DEVELOPMENT
 // ===============================
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 // ===============================
 // MIDDLEWARE
