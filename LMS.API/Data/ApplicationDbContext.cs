@@ -108,6 +108,22 @@ namespace LMS.API.Data
                 .WithMany()
                 .HasForeignKey(x => x.RackId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BookPurchase>()
+                .Property(x => x.TotalCost)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<BookPurchase>()
+                .Property(x => x.ConversionRate)
+                .HasPrecision(18, 6);
+
+            modelBuilder.Entity<BookPurchase>()
+                .Property(x => x.TotalCostAed)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<BookPurchaseDetail>()
+                .Property(x => x.Cost)
+                .HasPrecision(18, 2);
         }
     }
 }

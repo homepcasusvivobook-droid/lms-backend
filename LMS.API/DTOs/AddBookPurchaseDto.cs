@@ -10,6 +10,11 @@
 
         public string? CreatedBy { get; set; }
         public string? EditedBy { get; set; }
+        public string PurchaseType { get; set; } = "Purchase";
+        public string Currency { get; set; } = "AED";
+        public decimal ConversionRate { get; set; } = 1;
+        public decimal TotalCostAed { get; set; }
+        public string? SponsorName { get; set; }
 
         public List<AddBookPurchaseDetailDto> Details { get; set; } = new();
     }

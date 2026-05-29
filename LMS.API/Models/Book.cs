@@ -48,5 +48,6 @@ namespace LMS.API.Models
         public string? CodeNo { get; set; }
 
         public string? CustomBarcode { get; set; }
+
     }
 }

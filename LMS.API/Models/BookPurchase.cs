@@ -33,5 +33,11 @@ namespace LMS.API.Models
         public string? DeletedBy { get; set; }
 
         public ICollection<BookPurchaseDetail>? Details { get; set; }
+
+        public string PurchaseType { get; set; } = "Purchase"; // Purchase / Sponsorship
+        public string Currency { get; set; } = "AED";          // AED / INR / USD
+        public decimal ConversionRate { get; set; } = 1;
+        public decimal TotalCostAed { get; set; }
+        public string? SponsorName { get; set; }
     }
 }

@@ -21,6 +21,31 @@ namespace LMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePurchase(AddBookPurchaseDto dto)
         {
+            dto.PurchaseType = string.IsNullOrWhiteSpace(dto.PurchaseType)
+                ? "Purchase"
+                : dto.PurchaseType.Trim();
+
+            dto.InvoiceNo = dto.InvoiceNo?.Trim() ?? "";
+            dto.StoreName = dto.StoreName?.Trim();
+
+            if (dto.PurchaseDate == default)
+                return BadRequest("Purchase date is required.");
+
+            if (dto.PurchaseType == "Purchase")
+            {
+                if (string.IsNullOrWhiteSpace(dto.InvoiceNo))
+                    return BadRequest("Invoice number is required.");
+
+                if (string.IsNullOrWhiteSpace(dto.StoreName))
+                    return BadRequest("Store name is required.");
+            }
+
+            if (dto.ConversionRate <= 0)
+                return BadRequest("Conversion rate must be greater than zero.");
+
+            dto.TotalCostAed = dto.Currency == "AED"
+                ? dto.TotalCost
+                : dto.TotalCost / dto.ConversionRate;
             if (dto.Details == null || dto.Details.Count == 0)
                 return BadRequest("Please add at least one book item.");
 
@@ -45,7 +70,12 @@ namespace LMS.API.Controllers
                     CreatedBy = dto.CreatedBy ?? "Admin",
                     CreatedDate = DateTime.Now,
                     IsActive = true,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    PurchaseType = dto.PurchaseType,
+                    Currency = dto.Currency,
+                    ConversionRate = dto.ConversionRate,
+                    TotalCostAed = dto.TotalCostAed,
+                    SponsorName = dto.SponsorName
                 };
 
                 _context.BookPurchases.Add(purchase);
@@ -160,7 +190,12 @@ namespace LMS.API.Controllers
                     x.TotalCost,
                     x.Remarks,
                     x.CreatedDate,
-                    x.CreatedBy
+                    x.CreatedBy,
+                    x.PurchaseType,
+                    x.Currency,
+                    x.ConversionRate,
+                    x.TotalCostAed,
+                    x.SponsorName,
                 })
                 .ToListAsync();
 
@@ -183,6 +218,11 @@ namespace LMS.API.Controllers
                     x.Remarks,
                     x.CreatedDate,
                     x.CreatedBy,
+                    x.PurchaseType,
+                    x.Currency,
+                    x.ConversionRate,
+                    x.TotalCostAed,
+                    x.SponsorName,
 
                     Details = _context.BookPurchaseDetails
                         .Where(d => d.BookPurchaseId == x.Id && !d.IsDeleted)
@@ -237,6 +277,31 @@ namespace LMS.API.Controllers
 
             if (purchase == null)
                 return NotFound("Purchase not found.");
+            dto.PurchaseType = string.IsNullOrWhiteSpace(dto.PurchaseType)
+                 ? "Purchase"
+                : dto.PurchaseType.Trim();
+
+            dto.InvoiceNo = dto.InvoiceNo?.Trim() ?? "";
+            dto.StoreName = dto.StoreName?.Trim();
+
+            if (dto.PurchaseDate == default)
+                return BadRequest("Purchase date is required.");
+
+            if (dto.PurchaseType == "Purchase")
+            {
+                if (string.IsNullOrWhiteSpace(dto.InvoiceNo))
+                    return BadRequest("Invoice number is required.");
+
+                if (string.IsNullOrWhiteSpace(dto.StoreName))
+                    return BadRequest("Store name is required.");
+            }
+
+            if (dto.ConversionRate <= 0)
+                return BadRequest("Conversion rate must be greater than zero.");
+
+            dto.TotalCostAed = dto.Currency == "AED"
+                ? dto.TotalCost
+                : dto.TotalCost / dto.ConversionRate;
 
             if (dto.Details == null || dto.Details.Count == 0)
                 return BadRequest("Please add at least one book item.");
@@ -249,6 +314,11 @@ namespace LMS.API.Controllers
                 purchase.StoreName = dto.StoreName;
                 purchase.PurchaseDate = dto.PurchaseDate;
                 purchase.TotalCost = dto.TotalCost;
+                purchase.PurchaseType = dto.PurchaseType;
+                purchase.Currency = dto.Currency;
+                purchase.ConversionRate = dto.ConversionRate;
+                purchase.TotalCostAed = dto.TotalCostAed;
+                purchase.SponsorName = dto.SponsorName;
                 purchase.TotalCopies = dto.Details.Sum(x => x.NoOfCopies);
                 purchase.Remarks = dto.Remarks;
                 purchase.EditedDate = DateTime.Now;
@@ -334,7 +404,7 @@ namespace LMS.API.Controllers
                         int serialNo = lastSerialNo + i;
 
                         string barcode =
-                            $"{book.CustomBarcode}-{shelf.ShelfCode}-{rack.RackCode}-{serialNo.ToString("D4")}";
+                            $"{book.CustomBarcode}-C{serialNo.ToString("D2")}";
 
                         var copy = new BookCopy
                         {
