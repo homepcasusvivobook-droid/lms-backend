@@ -58,3 +58,8 @@ coverage/
 *.nupkg
 packages/
 /.vs/LMS.slnx/FileContentIndex/merges
+
+.vs/
+**/Properties/PublishProfiles/
+*.pubxml
+*.PublishSettings
