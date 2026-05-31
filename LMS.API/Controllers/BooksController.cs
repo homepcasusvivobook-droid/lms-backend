@@ -69,32 +69,40 @@ namespace LMS.API.Controllers
         [HttpGet("{id}/rack-shelf-summary")]
         public async Task<IActionResult> GetRackShelfSummary(int id)
         {
-            var summary = await _context.BookCopies
+            var data = await _context.BookCopies
                 .Where(x => x.BookId == id && !x.IsDeleted)
-                .Include(x => x.Shelf)
-                .Include(x => x.Rack)
+                .Join(
+                    _context.Shelves.Where(s => !s.IsDeleted),
+                    copy => copy.ShelfId,
+                    shelf => shelf.Id,
+                    (copy, shelf) => new { copy, shelf }
+                )
+                .Join(
+                    _context.Racks.Where(r => !r.IsDeleted),
+                    cs => cs.copy.RackId,
+                    rack => rack.Id,
+                    (cs, rack) => new
+                    {
+                        cs.copy,
+                        cs.shelf,
+                        rack
+                    }
+                )
                 .GroupBy(x => new
                 {
-                    ShelfName = x.Shelf != null
-                        ? x.Shelf.ShelfCode + " - " + x.Shelf.ShelfName
-                        : "",
-
-                    RackName = x.Rack != null
-                        ? x.Rack.RackCode + " - " + x.Rack.RackName
-                        : ""
+                    x.shelf.ShelfName,
+                    x.rack.RackName
                 })
                 .Select(g => new
                 {
-                    ShelfName = g.Key.ShelfName,
-                    RackName = g.Key.RackName,
-                    TotalCount = g.Count(),
-                    AvailableCount = g.Count(x => x.Status == "Available")
+                    shelfName = g.Key.ShelfName,
+                    rackName = g.Key.RackName,
+                    totalCount = g.Count(),
+                    availableCount = g.Count(x => x.copy.Status == "Available")
                 })
-                .OrderBy(x => x.ShelfName)
-                .ThenBy(x => x.RackName)
                 .ToListAsync();
 
-            return Ok(summary);
+            return Ok(data);
         }
 
         [HttpGet("{id}")]
