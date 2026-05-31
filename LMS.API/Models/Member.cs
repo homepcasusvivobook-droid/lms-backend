@@ -40,5 +40,9 @@ namespace LMS.API.Models
         public int? MemberTypeId { get; set; }
 
         public MemberType? MemberType { get; set; }
+
+        public string? MemberTypePrefix { get; set; }
+
+        public int MemberSerialNo { get; set; }
     }
 }

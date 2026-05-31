@@ -137,6 +137,35 @@ namespace LMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateMember(Member member)
         {
+            if (member.MemberTypeId == null || member.MemberTypeId <= 0)
+                return BadRequest("Member Type is required.");
+
+            var memberType = await _context.MemberTypes
+                .FirstOrDefaultAsync(x => x.Id == member.MemberTypeId && !x.IsDeleted && x.IsActive);
+
+            if (memberType == null)
+                return BadRequest("Invalid Member Type.");
+
+            if (string.IsNullOrWhiteSpace(memberType.Prefix))
+                return BadRequest("Member Type Prefix is missing.");
+
+            var prefix = memberType.Prefix.Trim().ToUpper();
+
+            var lastSerial = await _context.Members
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.MemberTypeId == member.MemberTypeId &&
+                    x.MemberTypePrefix == prefix)
+                .OrderByDescending(x => x.MemberSerialNo)
+                .Select(x => x.MemberSerialNo)
+                .FirstOrDefaultAsync();
+
+            var nextSerial = lastSerial + 1;
+
+            member.MemberTypePrefix = prefix;
+            member.MemberSerialNo = nextSerial;
+            member.MemberId = prefix + nextSerial.ToString("D3");
+
             member.CreatedDate = DateTime.Now;
             member.CreatedBy = member.CreatedBy ?? "Admin";
 
@@ -161,15 +190,12 @@ namespace LMS.API.Controllers
             if (existingMember == null || existingMember.IsDeleted)
                 return NotFound();
 
-            existingMember.MemberId = member.MemberId;
             existingMember.CardexNo = member.CardexNo;
             existingMember.MemberName = member.MemberName;
             existingMember.PhoneNo = member.PhoneNo;
             existingMember.Email = member.Email;
             existingMember.Address = member.Address;
             existingMember.Parish = member.Parish;
-
-            existingMember.MemberTypeId = member.MemberTypeId;
 
             existingMember.IsEdited = true;
             existingMember.EditedDate = DateTime.Now;

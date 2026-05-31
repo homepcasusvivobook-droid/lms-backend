@@ -569,7 +569,39 @@ namespace LMS.API.Controllers
 
             return Ok(book);
         }
+        [HttpGet("copies-for-reprint")]
+        public async Task<IActionResult> GetBookCopiesForReprint()
+        {
+            var copies = await _context.BookCopies
+                .Where(c => !c.IsDeleted && c.Book != null && !c.Book.IsDeleted)
+                .Include(c => c.Book)
+                .Include(c => c.Shelf)
+                .Include(c => c.Rack)
+                .OrderByDescending(c => c.Id)
+                .Select(c => new
+                {
+                    copyId = c.Id,
+                    bookId = c.BookId,
 
+                    barcode = c.Barcode,
+                    serialNo = c.SerialNo,
+
+                    title = c.Book != null ? c.Book.Title : "",
+                    isbn = c.Book != null ? c.Book.ISBN : "",
+                    customBarcode = c.Book != null ? c.Book.CustomBarcode : "",
+
+                    shelfId = c.ShelfId,
+                    shelfName = c.Shelf != null ? c.Shelf.ShelfName : "",
+
+                    rackId = c.RackId,
+                    rackName = c.Rack != null ? c.Rack.RackName : "",
+
+                    status = c.Status
+                })
+                .ToListAsync();
+
+            return Ok(copies);
+        }
         private async Task GenerateCustomBarcode(Book book)
         {
             var category = await _context.Categories.FindAsync(book.CategoryId);

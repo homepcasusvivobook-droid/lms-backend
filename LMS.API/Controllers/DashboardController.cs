@@ -16,13 +16,22 @@ namespace LMS.API.Controllers
         }
 
         [HttpGet("summary")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummary(DateTime? fromDate, DateTime? toDate)
         {
-            var totalMembers = await _context.Members.CountAsync(x => !x.IsDeleted);
-            var activeMembers = await _context.Members.CountAsync(x => !x.IsDeleted && x.IsActive);
+            var from = fromDate?.Date ?? new DateTime(DateTime.Now.Year, 1, 1);
+            var to = toDate?.Date.AddDays(1).AddTicks(-1) ?? new DateTime(DateTime.Now.Year, 12, 31, 23, 59, 59);
 
-            var totalBooks = await _context.Books.CountAsync(x => !x.IsDeleted);
-            var totalCopies = await _context.BookCopies.CountAsync(x => !x.IsDeleted);
+            var totalMembers = await _context.Members
+                .CountAsync(x => !x.IsDeleted);
+
+            var activeMembers = await _context.Members
+                .CountAsync(x => !x.IsDeleted && x.IsActive);
+
+            var totalBooks = await _context.Books
+                .CountAsync(x => !x.IsDeleted);
+
+            var totalCopies = await _context.BookCopies
+                .CountAsync(x => !x.IsDeleted);
 
             var availableCopies = await _context.BookCopies
                 .CountAsync(x => !x.IsDeleted && x.Status == "Available");
@@ -31,16 +40,23 @@ namespace LMS.API.Controllers
                 .CountAsync(x => !x.IsDeleted && x.Status == "Issued");
 
             var overdueBooks = await _context.BookIssues
-                .CountAsync(x => !x.IsDeleted &&
-                                 x.Status == "Issued" &&
-                                 x.DueDate.Date < DateTime.Now.Date);
+                .CountAsync(x =>
+                    !x.IsDeleted &&
+                    x.Status == "Issued" &&
+                    x.DueDate.Date < DateTime.Now.Date);
 
             var totalPurchases = await _context.BookPurchases
-                .CountAsync(x => !x.IsDeleted);
+                .CountAsync(x =>
+                    !x.IsDeleted &&
+                    x.PurchaseDate >= from &&
+                    x.PurchaseDate <= to);
 
             var totalPurchaseCost = await _context.BookPurchases
-                .Where(x => !x.IsDeleted)
-                .SumAsync(x => x.TotalCost);
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.PurchaseDate >= from &&
+                    x.PurchaseDate <= to)
+                .SumAsync(x => (decimal?)x.TotalCost) ?? 0;
 
             return Ok(new
             {
@@ -111,9 +127,10 @@ namespace LMS.API.Controllers
                 .Include(x => x.Member)
                 .Include(x => x.BookCopy)
                     .ThenInclude(x => x.Book)
-                .Where(x => !x.IsDeleted &&
-                            x.Status == "Issued" &&
-                            x.DueDate.Date < today)
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.Status == "Issued" &&
+                    x.DueDate.Date < today)
                 .Select(x => new
                 {
                     IssueId = x.Id,

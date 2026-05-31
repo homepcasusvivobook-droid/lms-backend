@@ -1,7 +1,6 @@
 ﻿using LMS.API.Data;
 using LMS.API.DTOs;
 using LMS.API.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +17,12 @@ namespace LMS.API.Controllers
             _context = context;
         }
 
+        private bool IsPurchase(string? type) =>
+            string.Equals(type, "Purchase", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsSponsorship(string? type) =>
+            string.Equals(type, "Sponsorship", StringComparison.OrdinalIgnoreCase);
+
         [HttpPost]
         public async Task<IActionResult> CreatePurchase(AddBookPurchaseDto dto)
         {
@@ -28,32 +33,39 @@ namespace LMS.API.Controllers
             dto.InvoiceNo = dto.InvoiceNo?.Trim() ?? "";
             dto.StoreName = dto.StoreName?.Trim();
 
+            if (IsSponsorship(dto.PurchaseType))
+            {
+                dto.InvoiceNo = "";
+                dto.StoreName = null;
+            }
+
             if (dto.PurchaseDate == default)
                 return BadRequest("Purchase date is required.");
 
-            if (dto.PurchaseType == "Purchase")
+            if (IsPurchase(dto.PurchaseType))
             {
                 if (string.IsNullOrWhiteSpace(dto.InvoiceNo))
                     return BadRequest("Invoice number is required.");
 
                 if (string.IsNullOrWhiteSpace(dto.StoreName))
                     return BadRequest("Store name is required.");
+
+                bool invoiceExists = await _context.BookPurchases
+                    .AnyAsync(x => x.InvoiceNo == dto.InvoiceNo && !x.IsDeleted);
+
+                if (invoiceExists)
+                    return BadRequest("This invoice number already exists.");
             }
 
             if (dto.ConversionRate <= 0)
                 return BadRequest("Conversion rate must be greater than zero.");
 
-            dto.TotalCostAed = dto.Currency == "AED"
+            dto.TotalCostAed = string.Equals(dto.Currency, "AED", StringComparison.OrdinalIgnoreCase)
                 ? dto.TotalCost
                 : dto.TotalCost / dto.ConversionRate;
+
             if (dto.Details == null || dto.Details.Count == 0)
                 return BadRequest("Please add at least one book item.");
-
-            bool invoiceExists = await _context.BookPurchases
-                .AnyAsync(x => x.InvoiceNo == dto.InvoiceNo && !x.IsDeleted);
-
-            if (invoiceExists)
-                return BadRequest("This invoice number already exists.");
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
 
@@ -130,8 +142,8 @@ namespace LMS.API.Controllers
                     for (int i = 1; i <= item.NoOfCopies; i++)
                     {
                         int serialNo = lastSerialNo + i;
-                            string barcode =
-                            $"{book.CustomBarcode}-C{serialNo.ToString("D2")}";
+
+                        string barcode = $"{book.CustomBarcode}-C{serialNo:D2}";
 
                         var copy = new BookCopy
                         {
@@ -145,7 +157,7 @@ namespace LMS.API.Controllers
                             IsActive = true,
                             IsDeleted = false,
                             CreatedDate = DateTime.Now,
-                            CreatedBy = dto.CreatedBy
+                            CreatedBy = dto.CreatedBy ?? "Admin"
                         };
 
                         generatedBarcodes.Add(barcode);
@@ -195,7 +207,7 @@ namespace LMS.API.Controllers
                     x.Currency,
                     x.ConversionRate,
                     x.TotalCostAed,
-                    x.SponsorName,
+                    x.SponsorName
                 })
                 .ToListAsync();
 
@@ -277,29 +289,45 @@ namespace LMS.API.Controllers
 
             if (purchase == null)
                 return NotFound("Purchase not found.");
+
             dto.PurchaseType = string.IsNullOrWhiteSpace(dto.PurchaseType)
-                 ? "Purchase"
+                ? "Purchase"
                 : dto.PurchaseType.Trim();
 
             dto.InvoiceNo = dto.InvoiceNo?.Trim() ?? "";
             dto.StoreName = dto.StoreName?.Trim();
 
+            if (IsSponsorship(dto.PurchaseType))
+            {
+                dto.InvoiceNo = "";
+                dto.StoreName = null;
+            }
+
             if (dto.PurchaseDate == default)
                 return BadRequest("Purchase date is required.");
 
-            if (dto.PurchaseType == "Purchase")
+            if (IsPurchase(dto.PurchaseType))
             {
                 if (string.IsNullOrWhiteSpace(dto.InvoiceNo))
                     return BadRequest("Invoice number is required.");
 
                 if (string.IsNullOrWhiteSpace(dto.StoreName))
                     return BadRequest("Store name is required.");
+
+                bool invoiceExists = await _context.BookPurchases
+                    .AnyAsync(x =>
+                        x.Id != id &&
+                        x.InvoiceNo == dto.InvoiceNo &&
+                        !x.IsDeleted);
+
+                if (invoiceExists)
+                    return BadRequest("This invoice number already exists.");
             }
 
             if (dto.ConversionRate <= 0)
                 return BadRequest("Conversion rate must be greater than zero.");
 
-            dto.TotalCostAed = dto.Currency == "AED"
+            dto.TotalCostAed = string.Equals(dto.Currency, "AED", StringComparison.OrdinalIgnoreCase)
                 ? dto.TotalCost
                 : dto.TotalCost / dto.ConversionRate;
 
@@ -349,7 +377,6 @@ namespace LMS.API.Controllers
                 {
                     detail.IsDeleted = true;
                     detail.IsActive = false;
-
                     detail.DeletedDate = DateTime.Now;
                     detail.DeletedBy = dto.EditedBy ?? "Admin";
                 }
@@ -383,6 +410,7 @@ namespace LMS.API.Controllers
                         NoOfCopies = item.NoOfCopies,
                         Cost = item.Cost,
                         Remarks = item.Remarks,
+                        CreatedBy = dto.EditedBy ?? "Admin",
                         IsActive = true,
                         IsDeleted = false,
                         CreatedDate = DateTime.Now
@@ -402,9 +430,7 @@ namespace LMS.API.Controllers
                     for (int i = 1; i <= item.NoOfCopies; i++)
                     {
                         int serialNo = lastSerialNo + i;
-
-                        string barcode =
-                            $"{book.CustomBarcode}-C{serialNo.ToString("D2")}";
+                        string barcode = $"{book.CustomBarcode}-C{serialNo:D2}";
 
                         var copy = new BookCopy
                         {
@@ -418,7 +444,7 @@ namespace LMS.API.Controllers
                             IsActive = true,
                             IsDeleted = false,
                             CreatedDate = DateTime.Now,
-                            CreatedBy = dto.CreatedBy
+                            CreatedBy = dto.EditedBy ?? "Admin"
                         };
 
                         _context.BookCopies.Add(copy);
@@ -457,22 +483,18 @@ namespace LMS.API.Controllers
             var detailIds = details.Select(x => x.Id).ToList();
 
             var copies = await _context.BookCopies
-                .Where(x => x.BookPurchaseDetailId != null &&
-                            detailIds.Contains(x.BookPurchaseDetailId.Value) &&
-                            !x.IsDeleted)
+                .Where(x =>
+                    x.BookPurchaseDetailId != null &&
+                    detailIds.Contains(x.BookPurchaseDetailId.Value) &&
+                    !x.IsDeleted)
                 .ToListAsync();
 
-            // ==============================
-            // CHECK ISSUED COPIES
-            // ==============================
             bool hasIssuedCopies = copies.Any(x =>
                 x.Status == "Issued" ||
                 _context.BookIssues.Any(i =>
-                     i.BookCopyId == x.Id &&
-                     !i.IsDeleted &&
-                     i.Status == "Issued"
-                    )
-            );
+                    i.BookCopyId == x.Id &&
+                    !i.IsDeleted &&
+                    i.Status == "Issued"));
 
             if (hasIssuedCopies)
             {
@@ -481,9 +503,6 @@ namespace LMS.API.Controllers
                 );
             }
 
-            // ==============================
-            // DELETE COPIES
-            // ==============================
             foreach (var copy in copies)
             {
                 copy.IsDeleted = true;
@@ -492,18 +511,14 @@ namespace LMS.API.Controllers
                 copy.DeletedBy = deletedBy ?? "Admin";
             }
 
-            // ==============================
-            // DELETE DETAILS
-            // ==============================
             foreach (var detail in details)
             {
                 detail.IsDeleted = true;
                 detail.IsActive = false;
+                detail.DeletedDate = DateTime.Now;
+                detail.DeletedBy = deletedBy ?? "Admin";
             }
 
-            // ==============================
-            // DELETE PURCHASE
-            // ==============================
             purchase.IsDeleted = true;
             purchase.IsActive = false;
             purchase.DeletedBy = deletedBy ?? "Admin";

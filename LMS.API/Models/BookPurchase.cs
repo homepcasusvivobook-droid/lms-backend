@@ -7,7 +7,7 @@ namespace LMS.API.Models
         public int Id { get; set; }
 
         [Required]
-        public string InvoiceNo { get; set; } = string.Empty;
+        public string? InvoiceNo { get; set; }
 
         public string? StoreName { get; set; }
 

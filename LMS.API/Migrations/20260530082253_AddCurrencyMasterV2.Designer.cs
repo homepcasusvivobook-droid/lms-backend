@@ -4,6 +4,7 @@ using LMS.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LMS.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530082253_AddCurrencyMasterV2")]
+    partial class AddCurrencyMasterV2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -683,14 +686,8 @@ namespace LMS.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("MemberSerialNo")
-                        .HasColumnType("int");
-
                     b.Property<int?>("MemberTypeId")
                         .HasColumnType("int");
-
-                    b.Property<string>("MemberTypePrefix")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Parish")
                         .HasColumnType("nvarchar(max)");
@@ -1044,10 +1041,6 @@ namespace LMS.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("MemberTypeName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Prefix")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

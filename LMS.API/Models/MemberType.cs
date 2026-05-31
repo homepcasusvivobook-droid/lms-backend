@@ -4,6 +4,8 @@
 
     public string MemberTypeName { get; set; } = string.Empty;
 
+    public string Prefix { get; set; } = string.Empty;
+
     public int MaxBooksAllowed { get; set; }
 
     public bool IsActive { get; set; } = true;

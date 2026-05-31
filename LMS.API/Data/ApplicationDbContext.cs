@@ -27,6 +27,7 @@ namespace LMS.API.Data
         public DbSet<Language> Languages { get; set; }
         public DbSet<MembershipRenewal> MembershipRenewals { get; set; }
         public DbSet<MemberType> MemberTypes { get; set; }
+        public DbSet<Currency> Currencies { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

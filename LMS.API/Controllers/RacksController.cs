@@ -22,7 +22,7 @@ namespace LMS.API.Controllers
         {
             var data = await _context.Racks
                 .Where(x => !x.IsDeleted)
-                .OrderBy(x => x.RackCode)
+                .OrderByDescending(x => x.Id)
                 .Select(x => new
                 {
                     id = x.Id,
@@ -32,7 +32,7 @@ namespace LMS.API.Controllers
 
                     shelfName = _context.Shelves
                         .Where(s => s.Id == x.ShelfId)
-                        .Select(s => s.ShelfCode + " - " + s.ShelfName)
+                        .Select(s => s.ShelfName)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
@@ -74,13 +74,18 @@ namespace LMS.API.Controllers
             if (rack.ShelfId <= 0)
                 return BadRequest("Shelf is required");
 
+            rack.RackCode = rack.RackCode.Trim();
+            rack.RackName = rack.RackName.Trim();
+
             bool codeExists = await _context.Racks.AnyAsync(x =>
                 !x.IsDeleted &&
+                x.ShelfId == rack.ShelfId &&
                 x.RackCode != null &&
-                x.RackCode.ToLower() == rack.RackCode.ToLower());
+                x.RackCode.ToLower() == rack.RackCode.ToLower()
+            );
 
             if (codeExists)
-                return BadRequest("Rack Code already exists");
+                return BadRequest("Rack Code already exists for this shelf");
 
             rack.CreatedDate = DateTime.Now;
             rack.IsActive = true;
@@ -110,17 +115,22 @@ namespace LMS.API.Controllers
 
             var existingRack = await _context.Racks.FindAsync(id);
 
-            if (existingRack == null)
+            if (existingRack == null || existingRack.IsDeleted)
                 return NotFound();
+
+            rack.RackCode = rack.RackCode.Trim();
+            rack.RackName = rack.RackName.Trim();
 
             bool codeExists = await _context.Racks.AnyAsync(x =>
                 x.Id != id &&
                 !x.IsDeleted &&
+                x.ShelfId == rack.ShelfId &&
                 x.RackCode != null &&
-                x.RackCode.ToLower() == rack.RackCode.ToLower());
+                x.RackCode.ToLower() == rack.RackCode.ToLower()
+            );
 
             if (codeExists)
-                return BadRequest("Rack Code already exists");
+                return BadRequest("Rack Code already exists for this shelf");
 
             existingRack.RackCode = rack.RackCode;
             existingRack.RackName = rack.RackName;
@@ -135,15 +145,16 @@ namespace LMS.API.Controllers
 
         // DELETE: api/Racks/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRack(int id)
+        public async Task<IActionResult> DeleteRack(int id, string deletedBy = "Admin")
         {
             var rack = await _context.Racks.FindAsync(id);
 
-            if (rack == null)
+            if (rack == null || rack.IsDeleted)
                 return NotFound();
 
             rack.IsDeleted = true;
             rack.DeletedDate = DateTime.Now;
+            rack.DeletedBy = deletedBy;
 
             await _context.SaveChangesAsync();
 
